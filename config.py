@@ -43,7 +43,7 @@ TARGETS: List[Target] = [
 def _workbench_context_flag() -> str:
     """Gibt --append-system-prompt mit WORKBENCH_CONTEXT zurueck, falls Datei existiert."""
     ctx = f"{MONOREPO_ROOT}/{WORKBENCH_CONTEXT}"
-    return f' --append-system-prompt "$(cat \\"{ctx}\\")"'
+    return f' --append-system-prompt "$([ -f {ctx} ] && cat {ctx})"'
 
 
 def build_interactive_command(target: Target) -> str:
