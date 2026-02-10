@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Claude Code Session Launcher — GUI fuer Tobys-Tool Monorepo.
+Claude Code Session Launcher - GUI fuer Tobys-Tool Monorepo.
 """
+import platform
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
 from config import TARGETS, build_interactive_command, build_autonomous_command
-from terminal import open_in_terminal
 
 # Farben
 BG = "#0f0f17"
@@ -20,19 +20,25 @@ ORANGE = "#e67e22"
 ORANGE_HOVER = "#d35400"
 BTN_TEXT = "#ffffff"
 
-FONT = "Helvetica"
-WIN_W = 340
+# Platform-spezifische Anpassungen
+IS_LINUX = platform.system() == "Linux"
+FONT = "Sans" if IS_LINUX else "Helvetica"
+BTN_H = 32 if IS_LINUX else 28
+FONT_BTN = 11 if IS_LINUX else 10
+FONT_TITLE = 14 if IS_LINUX else 13
+FONT_SUB = 10 if IS_LINUX else 9
+WIN_W = 380 if IS_LINUX else 340
 
 
 class FlatButton(tk.Canvas):
-    """Farbiger Button der auf macOS funktioniert (Canvas-basiert)."""
+    """Farbiger Button der auf macOS und Linux funktioniert (Canvas-basiert)."""
 
     def __init__(self, parent, text, bg_color, hover_color, command, **kw):
         super().__init__(parent, highlightthickness=0, bd=0, bg=SURFACE, **kw)
         self.bg_color = bg_color
         self.hover_color = hover_color
         self.command = command
-        self.h = 28
+        self.h = BTN_H
         self.configure(height=self.h)
 
         self.bind("<Configure>", self._draw)
@@ -49,10 +55,10 @@ class FlatButton(tk.Canvas):
     def _draw(self, event=None):
         self.delete("all")
         w = self.winfo_width()
-        r = 6  # Border-Radius
+        r = 6
         self.create_round_rect(2, 1, w - 2, self.h - 1, r, fill=self._current_color, outline="")
         self.create_text(w // 2, self.h // 2, text=self._text, fill=BTN_TEXT,
-                         font=(FONT, 10), anchor="center")
+                         font=(FONT, FONT_BTN), anchor="center")
 
     def create_round_rect(self, x1, y1, x2, y2, r, **kw):
         self.create_arc(x1, y1, x1 + 2 * r, y1 + 2 * r, start=90, extent=90, style="pieslice", **kw)
@@ -90,16 +96,16 @@ class LauncherApp:
     def _build_header(self) -> None:
         f = tk.Frame(self.root, bg=BG, pady=10)
         f.pack(fill="x")
-        tk.Label(f, text="Claude Code Launcher", font=(FONT, 13, "bold"),
+        tk.Label(f, text="Claude Code Launcher", font=(FONT, FONT_TITLE, "bold"),
                  fg=TEXT, bg=BG).pack()
-        tk.Label(f, text="tobys-tool monorepo", font=(FONT, 9),
+        tk.Label(f, text="tobys-tool monorepo", font=(FONT, FONT_SUB),
                  fg=TEXT_DIM, bg=BG).pack()
 
     def _build_section(self, title, color, hover, on_click) -> None:
         frame = tk.Frame(self.root, bg=BG, padx=12, pady=8)
         frame.pack(fill="x")
 
-        tk.Label(frame, text=title, font=(FONT, 9, "bold"), fg=color,
+        tk.Label(frame, text=title, font=(FONT, FONT_SUB, "bold"), fg=color,
                  bg=BG, anchor="w").pack(fill="x", pady=(0, 4))
 
         for target in TARGETS:
