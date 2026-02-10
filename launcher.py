@@ -2,11 +2,13 @@
 """
 Claude Code Session Launcher - GUI fuer Tobys-Tool Monorepo.
 """
+import os
 import platform
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
-from config import TARGETS, build_interactive_command, build_autonomous_command
+from config import TARGETS, MONOREPO_ROOT, build_interactive_command, build_autonomous_command
+from terminal import open_in_terminal
 
 # Farben
 BG = "#0f0f17"
@@ -96,9 +98,9 @@ class LauncherApp:
     def _build_header(self) -> None:
         f = tk.Frame(self.root, bg=BG, pady=10)
         f.pack(fill="x")
-        tk.Label(f, text="Claude Code Launcher", font=(FONT, FONT_TITLE, "bold"),
+        tk.Label(f, text="Session Launcher", font=(FONT, FONT_TITLE, "bold"),
                  fg=TEXT, bg=BG).pack()
-        tk.Label(f, text="tobys-tool monorepo", font=(FONT, FONT_SUB),
+        tk.Label(f, text=os.path.basename(MONOREPO_ROOT), font=(FONT, FONT_SUB),
                  fg=TEXT_DIM, bg=BG).pack()
 
     def _build_section(self, title, color, hover, on_click) -> None:
