@@ -40,10 +40,21 @@ TARGETS: List[Target] = [
 ]
 
 
-def _workbench_context_flag() -> str:
-    """Gibt --append-system-prompt mit WORKBENCH_CONTEXT zurueck, falls Datei existiert."""
+def _context_flags(target: Target) -> str:
+    """Baut --append-system-prompt Flags fuer Workbench-Context, CLAUDE.md und README.md."""
+    flags = ""
+
+    # Workbench-Context (global)
     ctx = f"{MONOREPO_ROOT}/{WORKBENCH_CONTEXT}"
-    return f' --append-system-prompt "$([ -f {ctx} ] && cat {ctx})"'
+    flags += f' --append-system-prompt "$([ -f {ctx} ] && cat {ctx})"'
+
+    # App-spezifische CLAUDE.md und README.md
+    app_dir = f"{MONOREPO_ROOT}/{target.subdir}" if target.subdir else MONOREPO_ROOT
+    for filename in ["CLAUDE.md", "README.md"]:
+        path = f"{app_dir}/{filename}"
+        flags += f' --append-system-prompt "$([ -f {path} ] && cat {path})"'
+
+    return flags
 
 
 def build_interactive_command(target: Target) -> str:
@@ -56,9 +67,8 @@ def build_interactive_command(target: Target) -> str:
     if target.subdir:
         parts.append(f'cd "{target.subdir}"')
 
-    # Claude Code liest CLAUDE.md automatisch aus dem Arbeitsverzeichnis
     claude_cmd = "claude"
-    claude_cmd += _workbench_context_flag()
+    claude_cmd += _context_flags(target)
 
     parts.append(claude_cmd)
     return " && ".join(parts)
@@ -79,7 +89,7 @@ def build_autonomous_command(target: Target, prompt: str) -> str:
     claude_cmd = (
         f"echo '{escaped_prompt}' | claude --print"
         f" --dangerously-skip-permissions"
-        f"{_workbench_context_flag()}"
+        f"{_context_flags(target)}"
     )
 
     parts.append(claude_cmd)
