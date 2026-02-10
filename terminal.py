@@ -40,9 +40,9 @@ def _open_iterm2(command: str) -> None:
 
 
 def _open_konsole(command: str) -> None:
-    """Oeffnet Konsole (KDE) mit dem Befehl."""
+    """Oeffnet Konsole (KDE) mit dem Befehl. Login-Shell fuer volle Umgebung."""
     subprocess.Popen(
-        ["konsole", "-e", "bash", "-c", command],
+        ["konsole", "-e", "bash", "-lc", command],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
