@@ -57,6 +57,16 @@ def _context_flags(target: Target) -> str:
     return flags
 
 
+def _greeting_prompt(target: Target) -> str:
+    """Initialer Prompt der Claude auffordert den Kontext zu bestaetigen."""
+    return (
+        f"Begruesse mich kurz als Toby. "
+        f"Bestatige dass du den Projektkontext von {target.label} geladen hast "
+        f"und fasse in 1-2 Saetzen zusammen was das Projekt macht. "
+        f"Frage dann was ich heute machen moechte."
+    )
+
+
 def build_interactive_command(target: Target) -> str:
     """Baut den Shell-Befehl fuer eine interaktive Claude Code Session."""
     parts = [
@@ -67,8 +77,8 @@ def build_interactive_command(target: Target) -> str:
     if target.subdir:
         parts.append(f'cd "{target.subdir}"')
 
-    claude_cmd = "claude"
-    claude_cmd += _context_flags(target)
+    greeting = _greeting_prompt(target)
+    claude_cmd = f"claude{_context_flags(target)} '{greeting}'"
 
     parts.append(claude_cmd)
     return " && ".join(parts)
