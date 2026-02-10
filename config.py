@@ -57,14 +57,20 @@ def _context_flags(target: Target) -> str:
     return flags
 
 
-def _greeting_prompt(target: Target) -> str:
-    """Initialer Prompt der Claude auffordert den Kontext zu bestaetigen."""
-    return (
-        f"Begruesse mich kurz als Toby. "
+def _context_flags_with_greeting(target: Target) -> str:
+    """Baut Context-Flags inkl. Greeting-Instruktion als System-Prompt."""
+    flags = _context_flags(target)
+
+    # Greeting-Instruktion als Teil des System-Prompts
+    greeting = (
+        f"Wenn der User die Session startet, begruesse ihn kurz als Toby. "
         f"Bestatige dass du den Projektkontext von {target.label} geladen hast "
         f"und fasse in 1-2 Saetzen zusammen was das Projekt macht. "
-        f"Frage dann was ich heute machen moechte."
+        f"Frage dann was er heute machen moechte."
     )
+    flags += f' --append-system-prompt "{greeting}"'
+
+    return flags
 
 
 def build_interactive_command(target: Target) -> str:
@@ -77,8 +83,7 @@ def build_interactive_command(target: Target) -> str:
     if target.subdir:
         parts.append(f'cd "{target.subdir}"')
 
-    greeting = _greeting_prompt(target)
-    claude_cmd = f"claude{_context_flags(target)} '{greeting}'"
+    claude_cmd = f"claude{_context_flags_with_greeting(target)}"
 
     parts.append(claude_cmd)
     return " && ".join(parts)
