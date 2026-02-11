@@ -41,8 +41,10 @@ def _open_iterm2(command: str) -> None:
 
 def _open_konsole(command: str) -> None:
     """Oeffnet Konsole (KDE) mit dem Befehl. Login-Shell fuer volle Umgebung."""
+    # Deutsche Tastatur setzen, dann Befehl ausfuehren
+    wrapped = f'setxkbmap de; {command}'
     subprocess.Popen(
-        ["konsole", "-e", "bash", "-lc", command],
+        ["konsole", "-e", "bash", "-lc", wrapped],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

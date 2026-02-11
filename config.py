@@ -19,6 +19,7 @@ else:
     MONOREPO_ROOT = "/config/repos/tobys-tool"
 
 WORKBENCH_CONTEXT = ".claude/WORKBENCH_CONTEXT.md"
+WEBHOOK_URL = "https://api.fever-context.de/api/webhooks/claude-session"
 
 
 @dataclass
@@ -41,18 +42,13 @@ TARGETS: List[Target] = [
 
 
 def _context_flags(target: Target) -> str:
-    """Baut --append-system-prompt Flags fuer Workbench-Context, CLAUDE.md und README.md."""
+    """Baut --append-system-prompt Flag fuer Workbench-Context.
+    CLAUDE.md und README.md werden von Claude Code automatisch entdeckt."""
     flags = ""
 
-    # Workbench-Context (global)
+    # Workbench-Context (global, wird nicht auto-entdeckt)
     ctx = f"{MONOREPO_ROOT}/{WORKBENCH_CONTEXT}"
     flags += f' --append-system-prompt "$([ -f {ctx} ] && cat {ctx})"'
-
-    # App-spezifische CLAUDE.md und README.md
-    app_dir = f"{MONOREPO_ROOT}/{target.subdir}" if target.subdir else MONOREPO_ROOT
-    for filename in ["CLAUDE.md", "README.md"]:
-        path = f"{app_dir}/{filename}"
-        flags += f' --append-system-prompt "$([ -f {path} ] && cat {path})"'
 
     return flags
 
@@ -77,37 +73,51 @@ def build_interactive_command(target: Target) -> str:
     """Baut den Shell-Befehl fuer eine interaktive Claude Code Session."""
     parts = [
         f'cd "{MONOREPO_ROOT}"',
-        "git pull --ff-only 2>/dev/null || true",
+        "git pull --ff-only || true",
     ]
 
     if target.subdir:
         parts.append(f'cd "{target.subdir}"')
 
-    claude_cmd = f"claude{_context_flags_with_greeting(target)}"
+    claude_cmd = f'unset ANTHROPIC_API_KEY; claude{_context_flags_with_greeting(target)} "Hallo"'
 
     parts.append(claude_cmd)
     return " && ".join(parts)
 
 
 def build_autonomous_command(target: Target, prompt: str) -> str:
-    """Baut den Shell-Befehl fuer eine autonome Claude Code Session (--print)."""
-    escaped_prompt = prompt.replace("'", "'\\''")
+    """Baut den Shell-Befehl fuer eine autonome Claude Code Session.
+    Ergebnis wird per Webhook an die Leitstelle (Telegram) geschickt."""
+    escaped_prompt = prompt.replace('"', '\\"')
 
     parts = [
         f'cd "{MONOREPO_ROOT}"',
-        "git pull --ff-only 2>/dev/null || true",
+        "git pull --ff-only || true",
     ]
 
     if target.subdir:
         parts.append(f'cd "{target.subdir}"')
 
+    tmpfile = "/tmp/claude_autonomous_result.txt"
+    # Claude ausfuehren, Ergebnis anzeigen und speichern
     claude_cmd = (
-        f"echo '{escaped_prompt}' | claude --print"
-        f" --dangerously-skip-permissions"
-        f"{_context_flags(target)}"
+        f'unset ANTHROPIC_API_KEY;'
+        f' echo ">>> Claude arbeitet..."; echo "";'
+        f' claude --print'
+        f'{_context_flags(target)}'
+        f' "{escaped_prompt}"'
+        f' | tee {tmpfile};'
+        # Ergebnis per Python JSON-safe an Webhook senden
+        f' python3 -c "'
+        f"import json, urllib.request;"
+        f" result=open('{tmpfile}').read();"
+        f" data=json.dumps({{'target':'{target.label}','prompt':'''{escaped_prompt}''','result':result}}).encode();"
+        f" req=urllib.request.Request('{WEBHOOK_URL}',data=data,headers={{'Content-Type':'application/json'}});"
+        f" urllib.request.urlopen(req);"
+        f" print(''); print('>>> Ergebnis an Leitstelle gesendet')"
+        f'";'
+        f' echo ""; echo "--- Session beendet. Enter zum Schliessen ---"; read'
     )
 
     parts.append(claude_cmd)
-    # Shell offen halten nach Ausfuehrung
-    parts.append('echo "" && echo "--- Session beendet. Enter zum Schliessen ---" && read')
     return " && ".join(parts)

@@ -124,14 +124,71 @@ class LauncherApp:
             messagebox.showerror("Fehler", str(e))
 
     def _start_autonomous(self, target) -> None:
-        prompt = simpledialog.askstring(
-            "Prompt", f"Prompt fuer {target.label}:", parent=self.root)
+        prompt = self._ask_prompt(target)
         if not prompt:
             return
         try:
             open_in_terminal(build_autonomous_command(target, prompt))
         except Exception as e:
             messagebox.showerror("Fehler", str(e))
+
+    def _ask_prompt(self, target) -> str | None:
+        """Eigener Prompt-Dialog im Launcher-Style."""
+        dlg = tk.Toplevel(self.root)
+        dlg.title(f"Prompt - {target.label}")
+        dlg.configure(bg=BG)
+        dlg.resizable(False, False)
+
+        result = [None]
+
+        tk.Label(dlg, text=f"Prompt fuer {target.label}:",
+                 font=(FONT, FONT_SUB, "bold"), fg=ORANGE, bg=BG,
+                 anchor="w").pack(fill="x", padx=16, pady=(16, 6))
+
+        entry = tk.Text(dlg, height=4, width=40, font=(FONT, FONT_BTN),
+                        bg=SURFACE, fg=TEXT, insertbackground=TEXT,
+                        relief="flat", bd=0, wrap="word",
+                        highlightthickness=1, highlightcolor=ORANGE,
+                        highlightbackground=BORDER)
+        entry.pack(fill="x", padx=16, pady=(0, 10))
+
+        def submit():
+            result[0] = entry.get("1.0", "end-1c").strip()
+            dlg.destroy()
+
+        def on_key(e):
+            if e.keysym == "Return" and not e.state & 0x1:  # Enter ohne Shift
+                submit()
+                return "break"
+
+        entry.bind("<Key>", on_key)
+
+        btn_frame = tk.Frame(dlg, bg=BG)
+        btn_frame.pack(fill="x", padx=16, pady=(0, 16))
+
+        cancel_btn = FlatButton(btn_frame, "Abbrechen", BORDER, "#3a3a50",
+                                command=dlg.destroy, width=100)
+        cancel_btn.pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        send_btn = FlatButton(btn_frame, "Starten", ORANGE, ORANGE_HOVER,
+                              command=submit, width=100)
+        send_btn.pack(side="right", fill="x", expand=True, padx=(4, 0))
+
+        dlg.transient(self.root)
+
+        # Zentrieren
+        dlg.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() - dlg.winfo_reqwidth()) // 2
+        y = self.root.winfo_y() + 50
+        dlg.geometry(f"+{x}+{y}")
+
+        dlg.deiconify()
+        dlg.wait_visibility()
+        dlg.grab_set()
+        entry.focus_set()
+
+        self.root.wait_window(dlg)
+        return result[0]
 
     def _center(self) -> None:
         self.root.update_idletasks()
